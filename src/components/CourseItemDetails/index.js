@@ -1,46 +1,21 @@
 import {Component} from 'react'
-import Loader from 'react-loader-spinner'
+import TailSpin from 'react-loader-spinner'
 import Header from '../Header'
+import './index.css'
 
-import {
-  AppContainer,
-  CourseItemContainer,
-  CourseImgContainer,
-  CourseItemImg,
-  CourseDescription,
-  CourseItemHeading,
-  Description,
-  LoaderContainer,
-  FailureContainer,
-  FailureImg,
-  FailureHeading,
-  FailureText,
-  RetryBtn,
-} from './styledComponents'
-
-const apiStatusConstants = {
-  success: 'SUCCESS',
-  failure: 'FAILURE',
-  inProgress: 'IN_PROGRESS',
-}
-
-class CourseItemDetails extends Component {
-  state = {apiStatus: apiStatusConstants.success, courseItemDetails: {}}
+export default class CourseItemDetails extends Component {
+  state = {isLoading: true, isFailed: false, isSuccess: false, ItemDetails: {}}
 
   componentDidMount() {
-    this.getCourseItemDetails()
+    this.fetchCourseDetails()
   }
 
-  getCourseItemDetails = async () => {
-    this.setState({apiStatus: apiStatusConstants.inProgress})
+  fetchCourseDetails = async () => {
     const {match} = this.props
     const {params} = match
     const {id} = params
     console.log(id)
-    this.setState({apiStatus: apiStatusConstants.inProgress})
-    const url = `https://apis.ccbp.in/te/courses/${id}`
-    const options = {method: 'GET'}
-    const response = await fetch(url, options)
+    const response = await fetch(`https://apis.ccbp.in/te/courses/${id}`)
     const data = await response.json()
     if (response.ok) {
       const updatedData = {
@@ -49,80 +24,69 @@ class CourseItemDetails extends Component {
         name: data.course_details.name,
         imageUrl: data.course_details.image_url,
       }
+      console.log(data)
+      console.log(updatedData)
       this.setState({
-        courseItemDetails: updatedData,
-        apiStatus: apiStatusConstants.success,
+        isLoading: false,
+        isSuccess: true,
+        isFailed: false,
+        ItemDetails: updatedData,
       })
     } else {
-      this.setState({apiStatus: apiStatusConstants.failure})
-    }
-  }
-
-  onClickRetryBtn = () => {
-    this.getCourseItemDetails()
-  }
-
-  renderLoadingView = () => (
-    <LoaderContainer data-testid="loader">
-      <Loader type="TailSpin" color="#00BFFF" height={50} width={50} />
-    </LoaderContainer>
-  )
-
-  renderFailureView = () => (
-    <FailureContainer>
-      <FailureImg
-        src="https://assets.ccbp.in/frontend/react-js/tech-era/failure-img.png"
-        alt="failure view"
-      />
-      <FailureHeading>Oops! Something Went Wrong</FailureHeading>
-      <FailureText>
-        We cannot seem to find the page you looking for.
-      </FailureText>
-      <RetryBtn type="button" onClick={this.onClickRetryBtn}>
-        Retry
-      </RetryBtn>
-    </FailureContainer>
-  )
-
-  renderSuccessView = () => {
-    const {courseItemDetails} = this.state
-    const {description, name, imageUrl} = courseItemDetails
-    return (
-      <CourseItemContainer>
-        <CourseImgContainer>
-          <CourseItemImg src={imageUrl} alt={name} />
-        </CourseImgContainer>
-        <CourseDescription>
-          <CourseItemHeading>{name}</CourseItemHeading>
-          <Description>{description}</Description>
-        </CourseDescription>
-      </CourseItemContainer>
-    )
-  }
-
-  renderCourseStatus = () => {
-    const {apiStatus} = this.state
-    switch (apiStatus) {
-      case apiStatusConstants.success:
-        return this.renderSuccessView()
-      case apiStatusConstants.failure:
-        return this.renderFailureView()
-      case apiStatusConstants.inProgress:
-        return this.renderLoadingView()
-      default:
-        return null
+      this.setState({isLoading: false, isSuccess: false, isFailed: true})
     }
   }
 
   render() {
+    const {isLoading, isFailed, isSuccess, ItemDetails} = this.state
+    const {description, name, imageUrl} = ItemDetails
     return (
-      <AppContainer>
+      <div>
         <Header />
-
-        {this.renderCourseStatus()}
-      </AppContainer>
+        <div>
+          {isLoading && (
+            <div data-testid="loader" className="spinner">
+              <TailSpin
+                height="80"
+                width="80"
+                color="#4fa94d"
+                ariaLabel="tail-spin-loading"
+                radius="1"
+                wrapperStyle={{}}
+                wrapperClass=""
+              />
+            </div>
+          )}
+          {isSuccess && (
+            <div className="itemDetails">
+              <div>
+                <img src={imageUrl} alt={name} />
+              </div>
+              <div>
+                <h1>{name}</h1>
+                <p>{description}</p>
+              </div>
+            </div>
+          )}
+          {isFailed && (
+            <div>
+              <div>
+                <img
+                  src="https://assets.ccbp.in/frontend/react-js/tech-era/failure-img.png"
+                  alt="failure view"
+                />
+              </div>
+              <h1>Oops! Something Went Wrong</h1>
+              <p>We cannot seem to find the page you are looking for</p>
+              <div>
+                <button type="button" onClick={this.fetchCourseDetails}>
+                  Retry
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
     )
   }
 }
-
-export default CourseItemDetails
